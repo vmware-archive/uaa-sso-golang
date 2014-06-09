@@ -7,6 +7,7 @@ import (
     "net/http"
 )
 
+// Http Client, wraps go's http.Client for our usecase
 type Client struct {
     Host              string
     BasicAuthUsername string
@@ -22,6 +23,7 @@ func NewClient(host, clientID, clientSecret string) Client {
     }
 }
 
+// Make request with the given basic auth and ssl settings, returns reponse code and body as a byte array
 func (client Client) MakeRequest(method, path string, requestBody io.Reader) (int, []byte, error) {
     url := client.Host + path
     request, err := http.NewRequest(method, url, requestBody)

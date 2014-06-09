@@ -14,6 +14,7 @@ var (
     JSONParseError   = errors.New("Failed to parse JSON")
 )
 
+// Encapsulates the access and refresh tokens from UAA
 type Token struct {
     Access  string `json:"access_token"`
     Refresh string `json:"refresh_token"`
@@ -27,10 +28,12 @@ func (token Token) Type() string {
     return "bearer"
 }
 
+// Determines if all the token's information is present
 func (token Token) IsPresent() bool {
     return token.Access != "" && token.Refresh != ""
 }
 
+// Determines if the token has expired
 func (token Token) IsExpired() (bool, error) {
     parts := strings.Split(token.Access, ".")
     decodedToken, err := jwt.DecodeSegment(parts[1])
