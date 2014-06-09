@@ -2,7 +2,7 @@ package uaa_test
 
 import (
     "github.com/dgrijalva/jwt-go"
-    "github.com/pivotal-cf/go-uaa-client/uaa"
+    "github.com/pivotal-cf/uaa-sso-golang/uaa"
 
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/gomega"

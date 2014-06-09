@@ -60,7 +60,6 @@ func (u UAA) AuthorizeURL() string {
 }
 
 func (u UAA) LoginURL() string {
-    fmt.Printf("%+v\n", u)
     v := url.Values{}
     v.Set("access_type", u.AccessType)
     v.Set("approval_prompt", u.ApprovalPrompt)

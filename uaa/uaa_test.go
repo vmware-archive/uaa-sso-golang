@@ -4,7 +4,7 @@ import (
     "net/http"
     "net/http/httptest"
 
-    "github.com/pivotal-cf/go-uaa-client/uaa"
+    "github.com/pivotal-cf/uaa-sso-golang/uaa"
 
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/gomega"
