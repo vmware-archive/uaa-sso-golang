@@ -69,11 +69,10 @@ If your token has expired you can use the Refresh method to get a new one:
 	
 
 ### godoc
-  
-Check out the project into your go workspace then run the the following:
 
-  godoc -http=:6060
+The documentation can be found [here](http://godoc.org/github.com/pivotal-cf/uaa-sso-golang/uaa).
   
-Then navigate to the following in your favorite browser:
-       
-       http://localhost:6060/pkg/github.com/pivotal-cf/uaa-sso-golang/uaa/
+To view documentation locally:
+* Checkout the repo into your `$GOPATH`.
+* Run `godoc -http=:6060` at your terminal.
+* Then navigate to [this](http://localhost:6060/pkg/github.com/pivotal-cf/uaa-sso-golang/uaa/) in your browser.
