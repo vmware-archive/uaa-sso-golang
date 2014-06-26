@@ -10,7 +10,6 @@ package uaa
 import (
     "errors"
     "fmt"
-    "io"
     "net/url"
 )
 
@@ -53,21 +52,25 @@ type UAA struct {
     State          string
     AccessType     string
     ApprovalPrompt string
+    AccessToken    string
 
     ExchangeCommand       func(UAA, string) (Token, error)
     RefreshCommand        func(UAA, string) (Token, error)
     GetClientTokenCommand func(UAA) (Token, error)
+    UserByIDCommand       func(UAA, string) (User, error)
 }
 
-func NewUAA(loginURL, uaaURL, clientID, clientSecret string) UAA {
+func NewUAA(loginURL, uaaURL, clientID, clientSecret, token string) UAA {
     return UAA{
         loginURL:              loginURL,
         uaaURL:                uaaURL,
         ClientID:              clientID,
         ClientSecret:          clientSecret,
+        AccessToken:           token,
         ExchangeCommand:       Exchange,
         RefreshCommand:        Refresh,
         GetClientTokenCommand: GetClientToken,
+        UserByIDCommand:       UserByID,
     }
 }
 
@@ -108,13 +111,6 @@ func (u UAA) GetClientToken() (Token, error) {
     return u.GetClientTokenCommand(u)
 }
 
-func (u UAA) makeRequest(method, fullURL string, requestBody io.Reader) (int, []byte, error) {
-    uri, err := url.Parse(fullURL)
-    if err != nil {
-        return 0, []byte{}, err
-    }
-
-    host := uri.Scheme + "://" + uri.Host
-    client := NewClient(host, u.ClientID, u.ClientSecret)
-    return client.MakeRequest(method, uri.RequestURI(), requestBody)
+func (u UAA) UserByID(id string) (User, error) {
+    return u.UserByIDCommand(u, id)
 }

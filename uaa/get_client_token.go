@@ -13,7 +13,15 @@ func GetClientToken(u UAA) (Token, error) {
         "grant_type":   {"client_credentials"},
         "redirect_uri": {u.RedirectURL},
     }
-    code, body, err := u.makeRequest("POST", u.tokenURL(), strings.NewReader(params.Encode()))
+
+    uri, err := url.Parse(u.tokenURL())
+    if err != nil {
+        return token, err
+    }
+
+    host := uri.Scheme + "://" + uri.Host
+    client := NewClient(host).WithBasicAuthCredentials(u.ClientID, u.ClientSecret)
+    code, body, err := client.MakeRequest("POST", uri.RequestURI(), strings.NewReader(params.Encode()))
     if err != nil {
         return token, err
     }

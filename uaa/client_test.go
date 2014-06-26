@@ -15,10 +15,49 @@ import (
 var _ = Describe("Client", func() {
     var client uaa.Client
 
+    BeforeEach(func() {
+        client = uaa.Client{}
+    })
+
+    Describe("NewClient", func() {
+        It("returns a minimally configured Client instance", func() {
+            client = uaa.NewClient("http://uaa.example.com")
+            Expect(client.Host).To(Equal("http://uaa.example.com"))
+            Expect(client.BasicAuthUsername).To(Equal(""))
+            Expect(client.BasicAuthPassword).To(Equal(""))
+            Expect(client.VerifySSL).To(BeFalse())
+        })
+    })
+
+    Describe("WithBasicAuthCredentials", func() {
+        It("returns a client that has Basic Auth credentials set", func() {
+            client.AccessToken = "bad-token"
+
+            client = client.WithBasicAuthCredentials("client-id", "the client secret")
+            Expect(client.Host).To(Equal(""))
+            Expect(client.BasicAuthUsername).To(Equal("client-id"))
+            Expect(client.BasicAuthPassword).To(Equal("the client secret"))
+            Expect(client.AccessToken).To(Equal(""))
+            Expect(client.VerifySSL).To(BeFalse())
+        })
+    })
+
+    Describe("WithAuthorizationToken", func() {
+        It("returns a client that has an authorization token set", func() {
+            client.BasicAuthUsername = "bad-user"
+            client.BasicAuthPassword = "bad-password"
+
+            client = client.WithAuthorizationToken("token")
+            Expect(client.AccessToken).To(Equal("token"))
+            Expect(client.BasicAuthUsername).To(Equal(""))
+            Expect(client.BasicAuthPassword).To(Equal(""))
+        })
+    })
+
     Describe("TLSConfig", func() {
         Context("when VerifySSL option is true", func() {
             It("uses a TLS config that verifies SSL", func() {
-                client = uaa.NewClient("", "", "")
+                client = uaa.NewClient("")
                 client.VerifySSL = true
                 Expect(client.TLSConfig().InsecureSkipVerify).To(BeFalse())
             })
@@ -26,7 +65,7 @@ var _ = Describe("Client", func() {
 
         Context("when VerifySSL option is false", func() {
             It("uses a TLS config that does not verify SSL", func() {
-                client = uaa.NewClient("", "", "")
+                client = uaa.NewClient("")
                 client.VerifySSL = false
                 Expect(client.TLSConfig().InsecureSkipVerify).To(BeTrue())
             })
@@ -53,25 +92,52 @@ var _ = Describe("Client", func() {
 
         })
 
-        It("makes an HTTP request with the given URL, HTTP method, and request body", func() {
-            defer server.Close()
+        Context("with basic auth headers", func() {
+            It("makes an HTTP request with the given URL, HTTP method, and request body", func() {
+                defer server.Close()
 
-            client = uaa.NewClient(server.URL, "my-user", "my-pass")
+                client = uaa.NewClient(server.URL).WithBasicAuthCredentials("my-user", "my-pass")
 
-            requestBody := strings.NewReader("key=value")
-            code, body, err := client.MakeRequest("GET", "/something", requestBody)
-            if err != nil {
-                panic(err)
-            }
+                requestBody := strings.NewReader("key=value")
+                code, body, err := client.MakeRequest("GET", "/something", requestBody)
+                if err != nil {
+                    panic(err)
+                }
 
-            Expect(code).To(Equal(222))
+                Expect(code).To(Equal(222))
 
-            bodyText := string(body)
-            Expect(bodyText).To(ContainSubstring("GET"))
-            Expect(bodyText).To(ContainSubstring("/something"))
-            Expect(bodyText).To(ContainSubstring("key=value"))
-            Expect(headers["Content-Type"]).To(ContainElement("application/x-www-form-urlencoded"))
-            Expect(strings.Join(headers["Authorization"], " ")).To(ContainSubstring("Basic"))
+                bodyText := string(body)
+                Expect(bodyText).To(ContainSubstring("GET"))
+                Expect(bodyText).To(ContainSubstring("/something"))
+                Expect(bodyText).To(ContainSubstring("key=value"))
+                Expect(headers["Content-Type"]).To(ContainElement("application/x-www-form-urlencoded"))
+                Expect(strings.Join(headers["Authorization"], " ")).To(ContainSubstring("Basic bXktdXNlcjpteS1wYXNz"))
+            })
+        })
+
+        Context("with oaut access token", func() {
+            It("makes an HTTP request with the given URL, HTTP method, and request body", func() {
+                defer server.Close()
+
+                client = uaa.NewClient(server.URL)
+                client = client.WithBasicAuthCredentials("my-user", "my-pass")
+                client = client.WithAuthorizationToken("my-special-token")
+
+                requestBody := strings.NewReader("key=value")
+                code, body, err := client.MakeRequest("GET", "/something", requestBody)
+                if err != nil {
+                    panic(err)
+                }
+
+                Expect(code).To(Equal(222))
+
+                bodyText := string(body)
+                Expect(bodyText).To(ContainSubstring("GET"))
+                Expect(bodyText).To(ContainSubstring("/something"))
+                Expect(bodyText).To(ContainSubstring("key=value"))
+                Expect(headers["Content-Type"]).To(ContainElement("application/x-www-form-urlencoded"))
+                Expect(strings.Join(headers["Authorization"], " ")).To(ContainSubstring("Bearer my-special-token"))
+            })
         })
     })
 })

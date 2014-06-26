@@ -3,6 +3,7 @@ package uaa_test
 import (
     "net/http"
     "net/http/httptest"
+    "strings"
 
     "github.com/pivotal-cf/uaa-sso-golang/uaa"
 
@@ -17,7 +18,7 @@ var _ = Describe("GetClientToken", func() {
     Context("when UAA is responding normally", func() {
         BeforeEach(func() {
             fakeUAAServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-                if req.URL.Path == "/oauth/token" && req.Method == "POST" {
+                if req.URL.Path == "/oauth/token" && req.Method == "POST" && strings.Contains(req.Header.Get("Authorization"), "Basic") {
                     err := req.ParseForm()
                     if err != nil {
                         panic(err)
@@ -41,7 +42,7 @@ var _ = Describe("GetClientToken", func() {
                     w.WriteHeader(http.StatusNotFound)
                 }
             }))
-            auth = uaa.NewUAA("http://login.example.com", fakeUAAServer.URL, "the-client-id", "the-client-secret")
+            auth = uaa.NewUAA("http://login.example.com", fakeUAAServer.URL, "the-client-id", "the-client-secret", "")
         })
 
         AfterEach(func() {
@@ -58,7 +59,7 @@ var _ = Describe("GetClientToken", func() {
     Context("when UAA is not responding normally", func() {
         BeforeEach(func() {
             fakeUAAServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-                if req.URL.Path == "/oauth/token" && req.Method == "POST" {
+                if req.URL.Path == "/oauth/token" && req.Method == "POST" && strings.Contains(req.Header.Get("Authorization"), "Basic") {
                     response := `{"errors": "Out to lunch"}`
 
                     w.WriteHeader(http.StatusGone)
@@ -67,7 +68,7 @@ var _ = Describe("GetClientToken", func() {
                     w.WriteHeader(http.StatusNotFound)
                 }
             }))
-            auth = uaa.NewUAA("http://login.example.com", fakeUAAServer.URL, "the-client-id", "the-client-secret")
+            auth = uaa.NewUAA("http://login.example.com", fakeUAAServer.URL, "the-client-id", "the-client-secret", "")
         })
 
         AfterEach(func() {

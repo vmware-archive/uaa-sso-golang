@@ -12,15 +12,28 @@ type Client struct {
     Host              string
     BasicAuthUsername string
     BasicAuthPassword string
+    AccessToken       string
     VerifySSL         bool
 }
 
-func NewClient(host, clientID, clientSecret string) Client {
+func NewClient(host string) Client {
     return Client{
-        Host:              host,
-        BasicAuthUsername: clientID,
-        BasicAuthPassword: clientSecret,
+        Host: host,
     }
+}
+
+func (client Client) WithBasicAuthCredentials(clientID, clientSecret string) Client {
+    client.BasicAuthUsername = clientID
+    client.BasicAuthPassword = clientSecret
+    client.AccessToken = ""
+    return client
+}
+
+func (client Client) WithAuthorizationToken(token string) Client {
+    client.BasicAuthUsername = ""
+    client.BasicAuthPassword = ""
+    client.AccessToken = token
+    return client
 }
 
 // Make request with the given basic auth and ssl settings, returns reponse code and body as a byte array
@@ -30,7 +43,11 @@ func (client Client) MakeRequest(method, path string, requestBody io.Reader) (in
     if err != nil {
         return 0, nil, err
     }
-    request.SetBasicAuth(client.BasicAuthUsername, client.BasicAuthPassword)
+    if client.BasicAuthUsername != "" {
+        request.SetBasicAuth(client.BasicAuthUsername, client.BasicAuthPassword)
+    } else {
+        request.Header.Set("Authorization", "Bearer "+client.AccessToken)
+    }
     request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
     httpClient := http.Client{

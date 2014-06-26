@@ -13,7 +13,7 @@ var _ = Describe("UAA", func() {
     var auth uaa.UAA
 
     BeforeEach(func() {
-        auth = uaa.NewUAA("http://login.example.com", "http://uaa.example.com", "the-client-id", "the-client-secret")
+        auth = uaa.NewUAA("http://login.example.com", "http://uaa.example.com", "the-client-id", "the-client-secret", "")
     })
 
     Describe("AuthorizeURL", func() {
@@ -83,6 +83,23 @@ var _ = Describe("UAA", func() {
             auth.GetClientToken()
 
             Expect(getClientTokenWasCalled).To(Equal(true))
+        })
+    })
+
+    Describe("UserByID", func() {
+        var userByIDWasCalledWith string
+
+        It("delegates to the UserByID Command", func() {
+            Expect(reflect.ValueOf(auth.UserByIDCommand).Pointer()).To(Equal(reflect.ValueOf(uaa.UserByID).Pointer()))
+
+            auth.UserByIDCommand = func(u uaa.UAA, id string) (uaa.User, error) {
+                userByIDWasCalledWith = id
+                return uaa.User{}, nil
+            }
+
+            auth.UserByID("my-special-id")
+
+            Expect(userByIDWasCalledWith).To(Equal("my-special-id"))
         })
     })
 })

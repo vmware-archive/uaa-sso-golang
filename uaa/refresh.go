@@ -14,10 +14,19 @@ func Refresh(u UAA, refreshToken string) (Token, error) {
         "redirect_uri":  {u.RedirectURL},
         "refresh_token": {refreshToken},
     }
-    code, body, err := u.makeRequest("POST", u.tokenURL(), strings.NewReader(params.Encode()))
+
+    uri, err := url.Parse(u.tokenURL())
     if err != nil {
         return token, err
     }
+
+    host := uri.Scheme + "://" + uri.Host
+    client := NewClient(host).WithBasicAuthCredentials(u.ClientID, u.ClientSecret)
+    code, body, err := client.MakeRequest("POST", uri.RequestURI(), strings.NewReader(params.Encode()))
+    if err != nil {
+        return token, err
+    }
+
     switch {
     case code == http.StatusUnauthorized:
         return token, InvalidRefreshToken
