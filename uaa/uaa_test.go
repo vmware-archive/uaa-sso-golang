@@ -1,8 +1,7 @@
 package uaa_test
 
 import (
-    "net/http"
-    "net/http/httptest"
+    "reflect"
 
     "github.com/pivotal-cf/uaa-sso-golang/uaa"
 
@@ -37,216 +36,53 @@ var _ = Describe("UAA", func() {
     })
 
     Describe("Exchange", func() {
-        var fakeUAAServer *httptest.Server
+        var exchangeWasCalledWith string
 
-        Context("when UAA is responding normally", func() {
-            BeforeEach(func() {
-                fakeUAAServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-                    if req.URL.Path == "/oauth/token" && req.Method == "POST" {
-                        response := `{
-                            "access_token": "access-token",
-                            "refresh_token": "refresh-token",
-                            "token_type": "bearer"
-                        }`
-                        w.WriteHeader(http.StatusOK)
-                        w.Write([]byte(response))
-                    } else {
-                        w.WriteHeader(http.StatusNotFound)
-                    }
-                }))
-                auth = uaa.NewUAA("http://login.example.com", fakeUAAServer.URL, "the-client-id", "the-client-secret")
-            })
+        It("delegates to the Exchange Command", func() {
+            Expect(reflect.ValueOf(auth.ExchangeCommand).Pointer()).To(Equal(reflect.ValueOf(uaa.Exchange).Pointer()))
 
-            AfterEach(func() {
-                fakeUAAServer.Close()
-            })
+            auth.ExchangeCommand = func(u uaa.UAA, authCode string) (uaa.Token, error) {
+                exchangeWasCalledWith = authCode
+                return uaa.Token{}, nil
+            }
 
-            It("returns a token received in exchange for a code from UAA", func() {
-                token, err := auth.Exchange("1234")
-                if err != nil {
-                    panic(err)
-                }
+            auth.Exchange("auth-code")
 
-                Expect(token).To(Equal(uaa.Token{
-                    Access:  "access-token",
-                    Refresh: "refresh-token",
-                }))
-            })
-        })
-
-        Context("when UAA is not responding normally", func() {
-            BeforeEach(func() {
-                fakeUAAServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-                    if req.URL.Path == "/oauth/token" && req.Method == "POST" {
-                        w.WriteHeader(http.StatusUnauthorized)
-                        w.Write([]byte(`{"errors": "Unauthorized"}`))
-                    } else {
-                        w.WriteHeader(http.StatusNotFound)
-                    }
-                }))
-                auth = uaa.NewUAA("http://login.example.com", fakeUAAServer.URL, "the-client-id", "the-client-secret")
-            })
-
-            AfterEach(func() {
-                fakeUAAServer.Close()
-            })
-
-            It("returns an error message", func() {
-                _, err := auth.Exchange("1234")
-                Expect(err).To(BeAssignableToTypeOf(uaa.Failure{}))
-                Expect(err.Error()).To(Equal(`UAA Failure: 401 {"errors": "Unauthorized"}`))
-            })
+            Expect(exchangeWasCalledWith).To(Equal("auth-code"))
         })
     })
 
     Describe("Refresh", func() {
-        var fakeUAAServer *httptest.Server
+        var refreshWasCalledWith string
 
-        Context("when UAA is responding normally", func() {
-            BeforeEach(func() {
-                fakeUAAServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-                    if req.URL.Path == "/oauth/token" && req.Method == "POST" {
-                        err := req.ParseForm()
-                        if err != nil {
-                            panic(err)
-                        }
+        It("delegates to the Refresh Command", func() {
+            Expect(reflect.ValueOf(auth.RefreshCommand).Pointer()).To(Equal(reflect.ValueOf(uaa.Refresh).Pointer()))
 
-                        if req.Form.Get("refresh_token") != "refresh-token" {
-                            w.WriteHeader(http.StatusUnauthorized)
-                            w.Write([]byte(`{"error":"invalid_token"}`))
-                            return
-                        }
+            auth.RefreshCommand = func(u uaa.UAA, refreshToken string) (uaa.Token, error) {
+                refreshWasCalledWith = refreshToken
+                return uaa.Token{}, nil
+            }
 
-                        response := `{
-                            "access_token": "access-token",
-                            "refresh_token": "refresh-token",
-                            "token_type": "bearer"
-                        }`
+            auth.Refresh("some-token")
 
-                        w.WriteHeader(http.StatusOK)
-                        w.Write([]byte(response))
-                    } else {
-                        w.WriteHeader(http.StatusNotFound)
-                    }
-                }))
-                auth = uaa.NewUAA("http://login.example.com", fakeUAAServer.URL, "the-client-id", "the-client-secret")
-            })
-
-            AfterEach(func() {
-                fakeUAAServer.Close()
-            })
-
-            It("returns a token received in exchange for a refresh token", func() {
-                token, err := auth.Refresh("refresh-token")
-                Expect(err).To(BeNil())
-                Expect(token.Access).To(Equal("access-token"))
-            })
-
-            It("returns an invalid refresh token error for invalid token", func() {
-                _, err := auth.Refresh("bad-refresh-token")
-                Expect(err).To(Equal(uaa.InvalidRefreshToken))
-            })
-        })
-
-        Context("when UAA is not responding normally", func() {
-            BeforeEach(func() {
-                fakeUAAServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-                    if req.URL.Path == "/oauth/token" && req.Method == "POST" {
-                        response := `{"errors": "client_error"}`
-
-                        w.WriteHeader(http.StatusMethodNotAllowed)
-                        w.Write([]byte(response))
-                    } else {
-                        w.WriteHeader(http.StatusNotFound)
-                    }
-                }))
-                auth = uaa.NewUAA("http://login.example.com", fakeUAAServer.URL, "the-client-id", "the-client-secret")
-            })
-
-            AfterEach(func() {
-                fakeUAAServer.Close()
-            })
-
-            It("returns an error message", func() {
-                _, err := auth.Refresh("refresh-token")
-                Expect(err).To(BeAssignableToTypeOf(uaa.Failure{}))
-                Expect(err.Error()).To(Equal(`UAA Failure: 405 {"errors": "client_error"}`))
-            })
+            Expect(refreshWasCalledWith).To(Equal("some-token"))
         })
     })
 
-    Describe("Refresh", func() {
-        var fakeUAAServer *httptest.Server
+    Describe("GetClientToken", func() {
+        var getClientTokenWasCalled bool
 
-        //"/oauth/token": {200, `{
-        //"access_token": "some-client-auth-token",
-        //"refresh_token": "refresh-token",
-        //"token_type": "bearer"
-        Context("when UAA is responding normally", func() {
-            BeforeEach(func() {
-                fakeUAAServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-                    if req.URL.Path == "/oauth/token" && req.Method == "POST" {
-                        err := req.ParseForm()
-                        if err != nil {
-                            panic(err)
-                        }
+        It("delegates to the GetClientToken Command", func() {
+            Expect(reflect.ValueOf(auth.GetClientTokenCommand).Pointer()).To(Equal(reflect.ValueOf(uaa.GetClientToken).Pointer()))
 
-                        if req.Form.Get("grant_type") != "client_credentials" {
-                            w.WriteHeader(http.StatusNotAcceptable)
-                            w.Write([]byte(`{"error":"unacceptable"}`))
-                            return
-                        }
+            auth.GetClientTokenCommand = func(u uaa.UAA) (uaa.Token, error) {
+                getClientTokenWasCalled = true
+                return uaa.Token{}, nil
+            }
 
-                        response := `{
-                            "access_token": "client-access-token",
-                            "refresh_token": "refresh-token",
-                            "token_type": "bearer"
-                        }`
+            auth.GetClientToken()
 
-                        w.WriteHeader(http.StatusOK)
-                        w.Write([]byte(response))
-                    } else {
-                        w.WriteHeader(http.StatusNotFound)
-                    }
-                }))
-                auth = uaa.NewUAA("http://login.example.com", fakeUAAServer.URL, "the-client-id", "the-client-secret")
-            })
-
-            AfterEach(func() {
-                fakeUAAServer.Close()
-            })
-
-            It("returns the client auth token", func() {
-                token, err := auth.GetClientToken()
-                Expect(err).To(BeNil())
-                Expect(token.Access).To(Equal("client-access-token"))
-            })
-        })
-
-        Context("when UAA is not responding normally", func() {
-            BeforeEach(func() {
-                fakeUAAServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-                    if req.URL.Path == "/oauth/token" && req.Method == "POST" {
-                        response := `{"errors": "Out to lunch"}`
-
-                        w.WriteHeader(http.StatusGone)
-                        w.Write([]byte(response))
-                    } else {
-                        w.WriteHeader(http.StatusNotFound)
-                    }
-                }))
-                auth = uaa.NewUAA("http://login.example.com", fakeUAAServer.URL, "the-client-id", "the-client-secret")
-            })
-
-            AfterEach(func() {
-                fakeUAAServer.Close()
-            })
-
-            It("returns an error message", func() {
-                _, err := auth.GetClientToken()
-                Expect(err).To(BeAssignableToTypeOf(uaa.Failure{}))
-                Expect(err.Error()).To(Equal(`UAA Failure: 410 {"errors": "Out to lunch"}`))
-            })
+            Expect(getClientTokenWasCalled).To(Equal(true))
         })
     })
 })
