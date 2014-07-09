@@ -1,6 +1,7 @@
 package uaa_test
 
 import (
+    "bufio"
     "fmt"
     "net/http"
     "net/http/httptest"
@@ -79,12 +80,11 @@ var _ = Describe("Client", func() {
         BeforeEach(func() {
             server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
                 w.WriteHeader(222)
-                body := make([]byte, 40)
-                n, err := req.Body.Read(body)
+                buffer := bufio.NewReader(req.Body)
+                body, _, err := buffer.ReadLine()
                 if err != nil {
                     panic(err)
                 }
-                body = body[0:n]
                 response := fmt.Sprintf("%s %s %s", req.Method, req.URL.Path, body)
                 headers = req.Header
                 w.Write([]byte(response))
