@@ -22,11 +22,11 @@ var _ = Describe("Client", func() {
 
     Describe("NewClient", func() {
         It("returns a minimally configured Client instance", func() {
-            client = uaa.NewClient("http://uaa.example.com")
+            client = uaa.NewClient("http://uaa.example.com", true)
             Expect(client.Host).To(Equal("http://uaa.example.com"))
             Expect(client.BasicAuthUsername).To(Equal(""))
             Expect(client.BasicAuthPassword).To(Equal(""))
-            Expect(client.VerifySSL).To(BeFalse())
+            Expect(client.VerifySSL).To(BeTrue())
         })
     })
 
@@ -58,16 +58,14 @@ var _ = Describe("Client", func() {
     Describe("TLSConfig", func() {
         Context("when VerifySSL option is true", func() {
             It("uses a TLS config that verifies SSL", func() {
-                client = uaa.NewClient("")
-                client.VerifySSL = true
+                client = uaa.NewClient("", true)
                 Expect(client.TLSConfig().InsecureSkipVerify).To(BeFalse())
             })
         })
 
         Context("when VerifySSL option is false", func() {
             It("uses a TLS config that does not verify SSL", func() {
-                client = uaa.NewClient("")
-                client.VerifySSL = false
+                client = uaa.NewClient("", false)
                 Expect(client.TLSConfig().InsecureSkipVerify).To(BeTrue())
             })
         })
@@ -96,7 +94,7 @@ var _ = Describe("Client", func() {
             It("makes an HTTP request with the given URL, HTTP method, and request body", func() {
                 defer server.Close()
 
-                client = uaa.NewClient(server.URL).WithBasicAuthCredentials("my-user", "my-pass")
+                client = uaa.NewClient(server.URL, false).WithBasicAuthCredentials("my-user", "my-pass")
 
                 requestBody := strings.NewReader("key=value")
                 code, body, err := client.MakeRequest("GET", "/something", requestBody)
@@ -119,7 +117,7 @@ var _ = Describe("Client", func() {
             It("makes an HTTP request with the given URL, HTTP method, and request body", func() {
                 defer server.Close()
 
-                client = uaa.NewClient(server.URL)
+                client = uaa.NewClient(server.URL, false)
                 client = client.WithBasicAuthCredentials("my-user", "my-pass")
                 client = client.WithAuthorizationToken("my-special-token")
 
