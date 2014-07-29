@@ -6,6 +6,10 @@ import (
     "net/url"
 )
 
+type UserByIDInterface interface {
+    UserByID(string) (User, error)
+}
+
 type User struct {
     Username string
     ID       string

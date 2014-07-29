@@ -9,6 +9,10 @@ import (
 
 const MaxQueryLength = 8000
 
+type UsersByIDsInterface interface {
+    UsersByIDs(...string) ([]User, error)
+}
+
 func UsersByIDs(u UAA, ids ...string) ([]User, error) {
     return UsersByIDsWithMaxLength(u, MaxQueryLength, ids...)
 }
