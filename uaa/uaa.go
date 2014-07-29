@@ -43,16 +43,27 @@ func (failure Failure) Error() string {
 
 // Defines methods needed for clients to use UAA
 type UAAInterface interface {
-    AuthorizeURL() string
-    LoginURL() string
-    SetToken(string)
-
+    AuthorizeURLInterface
+    LoginURLInterface
+    SetTokenInterface
     ExchangeInterface
     GetClientTokenInterface
     GetTokenKeyInterface
     RefreshInterface
     UserByIDInterface
     UsersByIDsInterface
+}
+
+type AuthorizeURLInterface interface {
+    AuthorizeURL() string
+}
+
+type LoginURLInterface interface {
+    LoginURL() string
+}
+
+type SetTokenInterface interface {
+    SetToken(string)
 }
 
 // Contains necessary info to communicate with Cloudfoundry UAA server, use
