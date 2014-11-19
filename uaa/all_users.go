@@ -7,7 +7,7 @@ import (
 )
 
 type AllUsersInterface interface {
-	AllUsers(UAA) ([]User, error)
+	AllUsers() ([]User, error)
 }
 
 func AllUsers(u UAA) ([]User, error) {
