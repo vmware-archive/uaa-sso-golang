@@ -1,3 +1,5 @@
+# THIS CODEBASE IS DEPRECATED. IT IS NO LONGER SUPPORTED.
+
 ### Example usage
 
 #### creating a session for a user
