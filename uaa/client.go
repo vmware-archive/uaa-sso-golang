@@ -49,6 +49,7 @@ func GetClient(client Client) *http.Client {
 		_client = &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: client.TLSConfig(),
+				DisableKeepAlives: true,
 			},
 		}
 	}
